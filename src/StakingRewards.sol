@@ -62,7 +62,23 @@ contract StakingRewards {
         _;
     }
 
+    //external and public functions
+
+    //private functions and internal functions
+    function _min(uint256 x, uint256 y) private pure returns (uint256) {
+        return x <= y ? x : y;
+    }
+
+    //public view functions
+
     function lastTimeRewardApplicable() public view returns (uint256) {
         return _min(finishAt, block.timestamp);
+    }
+
+    function rewardPerToken() public view returns (uint256) {
+        if (totalSupply == 0) {
+            return rewardPerTokenStored;
+        }
+        return rewardPerTokenStored + (rewardRate * (lastTimeRewardApplicable() - updatedAt) * 1e18) / totalSupply;
     }
 }
