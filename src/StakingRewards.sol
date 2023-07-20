@@ -62,7 +62,23 @@ contract StakingRewards {
         _;
     }
 
+    modifier updateReward(address _account) {
+        rewardPerTokenStored = rewardPerToken();
+        updatedAt = lastTimeRewardApplicable();
+        if (_account != address(0)) {
+            rewards[_account] = earned(_account);
+            userRewardPerTokenPaid[_account] = rewardPerTokenStored;
+        }
+        _;
+    }
+
     //external and public functions
+    function stake(uint256 _amount) external updateReward(msg.sender) {
+        require(_amount > 0, "amount must be greater than 0");
+        stakingToken.transferFrom(msg.sender, address(this), _amount);
+        balanceOf[msg.sender] += _amount;
+        totalSupply += _amount;
+    }
 
     //private functions and internal functions
     function _min(uint256 x, uint256 y) private pure returns (uint256) {
