@@ -23,6 +23,34 @@ contract StakingRewards {
     IERC20 public immutable rewardToken;
     address public owner;
 
+    //Duration of rewards to be paid out (in seconds)
+    uint256 public duration;
+
+    //Timestamp of when the rewards finish
+    uint256 public finishAt;
+
+    //Minimum of last updated time and reward finish time
+    uint256 public updatedAt;
+
+    //reward to be paid out be second
+    uint256 public rewardRate;
+
+    //the sum of (reward rate * duration * e18/total Supply
+    uint256 public rewardPerTokenStored;
+
+    //mappings
+
+    //user address => rewardPerTokenStored
+    mapping(address => uint256) public userRewardPerTokenPaid;
+
+    //user address => rewards to be claimed
+    mapping(address => uint256) public rewards;
+
+    uint256 public totalSupply;
+
+    //user address => stake amount
+    mapping(address => uint256) public balanceOf;
+
     constructor(address _stakingToken, address _rewardToken) {
         stakingToken = IERC20(_stakingToken);
         rewardToken = IERC20(_rewardToken);
