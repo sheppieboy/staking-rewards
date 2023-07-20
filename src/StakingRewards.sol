@@ -17,3 +17,15 @@ interface IERC20 {
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
+
+contract StakingRewards {
+    IERC20 public immutable stakingToken;
+    IERC20 public immutable rewardToken;
+    address public owner;
+
+    constructor(address _stakingToken, address _rewardToken) {
+        stakingToken = IERC20(_stakingToken);
+        rewardToken = IERC20(_rewardToken);
+        owner = msg.sender;
+    }
+}
