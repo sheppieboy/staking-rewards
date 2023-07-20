@@ -28,4 +28,9 @@ contract StakingRewards {
         rewardToken = IERC20(_rewardToken);
         owner = msg.sender;
     }
+
+    modifier onlyOwner() {
+        require(owner == msg.sender, "Not the owner");
+        _;
+    }
 }
