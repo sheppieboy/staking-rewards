@@ -61,4 +61,8 @@ contract StakingRewards {
         require(owner == msg.sender, "Not the owner");
         _;
     }
+
+    function lastTimeRewardApplicable() public view returns (uint256) {
+        return _min(finishAt, block.timestamp);
+    }
 }
