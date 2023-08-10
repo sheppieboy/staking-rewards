@@ -21,80 +21,56 @@ interface IERC20 {
 contract StakingRewards {
     IERC20 public immutable stakingToken;
     IERC20 public immutable rewardToken;
-    address public owner;
 
-    //Duration of rewards to be paid out (in seconds)
-    uint256 public duration;
+    uint256 public rewardRate = 100;
+    uint256 public lastUpdateTime;
+    uint256 public rewardPerTokenStored; //s in equation
 
-    //Timestamp of when the rewards finish
-    uint256 public finishAt;
-
-    //Minimum of last updated time and reward finish time
-    uint256 public updatedAt;
-
-    //reward to be paid out be second
-    uint256 public rewardRate;
-
-    //the sum of (reward rate * duration * e18/total Supply
-    uint256 public rewardPerTokenStored;
-
-    //mappings
-
-    //user address => rewardPerTokenStored
-    mapping(address => uint256) public userRewardPerTokenPaid;
-
-    //user address => rewards to be claimed
+    mapping(address => uint256) public userRewardPerTokenPaid; //p[user]
     mapping(address => uint256) public rewards;
 
-    uint256 public totalSupply;
-
-    //user address => stake amount
-    mapping(address => uint256) public balanceOf;
+    uint256 _totalSupply;
+    mapping(address => uint256) private _balances;
 
     constructor(address _stakingToken, address _rewardToken) {
         stakingToken = IERC20(_stakingToken);
         rewardToken = IERC20(_rewardToken);
-        owner = msg.sender;
     }
 
-    modifier onlyOwner() {
-        require(owner == msg.sender, "Not the owner");
+    modifier updateReward(address account) {
+        rewardPerTokenStored = rewardPerToken(); //update s
+        lastUpdateTime = block.timestamp;
+        rewards[account] = earned(account);
+        userRewardPerTokenPaid[account] = rewardPerTokenStored; //p = s at that timestamp
         _;
-    }
-
-    modifier updateReward(address _account) {
-        rewardPerTokenStored = rewardPerToken();
-        updatedAt = lastTimeRewardApplicable();
-        if (_account != address(0)) {
-            rewards[_account] = earned(_account);
-            userRewardPerTokenPaid[_account] = rewardPerTokenStored;
-        }
-        _;
-    }
-
-    //external and public functions
-    function stake(uint256 _amount) external updateReward(msg.sender) {
-        require(_amount > 0, "amount must be greater than 0");
-        stakingToken.transferFrom(msg.sender, address(this), _amount);
-        balanceOf[msg.sender] += _amount;
-        totalSupply += _amount;
-    }
-
-    //private functions and internal functions
-    function _min(uint256 x, uint256 y) private pure returns (uint256) {
-        return x <= y ? x : y;
-    }
-
-    //public view functions
-
-    function lastTimeRewardApplicable() public view returns (uint256) {
-        return _min(finishAt, block.timestamp);
     }
 
     function rewardPerToken() public view returns (uint256) {
-        if (totalSupply == 0) {
-            return rewardPerTokenStored;
+        if (_totalSupply == 0) {
+            return 0;
         }
-        return rewardPerTokenStored + (rewardRate * (lastTimeRewardApplicable() - updatedAt) * 1e18) / totalSupply;
+        return rewardRate * (block.timestamp - lastUpdateTime) * 1e18 / _totalSupply;
+    }
+
+    function earned(address account) public view returns (uint256) {
+        return (_balances[account] * (rewardPerToken() - userRewardPerTokenPaid[account]) / 1e18) + rewards[account];
+    }
+
+    function stake(uint256 _amount) external updateReward(msg.sender) {
+        _totalSupply += _amount;
+        _balances[msg.sender] += _amount;
+        stakingToken.transferFrom(msg.sender, address(this), _amount);
+    }
+
+    function withdraw(uint256 _amount) external updateReward(msg.sender) {
+        _totalSupply -= _amount;
+        _balances[msg.sender] -= _amount;
+        stakingToken.transfer(msg.sender, _amount);
+    }
+
+    function getReward() external updateReward(msg.sender) {
+        uint256 reward = rewards[msg.sender];
+        rewards[msg.sender] = 0;
+        rewardToken.transfer(msg.sender, reward);
     }
 }
